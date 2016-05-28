@@ -120,9 +120,6 @@ except ImportError:
     def ecdsa_verify(msg, sig, pub, usehex=True):
         sig = base64.b64decode(sig)
         addr = pubkey_to_address(pub)
-        if usehex:
-            #electrum code requires binary signature
-            sig = binascii.unhexlify(sig)
         #the signature returned by the joinmarket code
         #has encoding (27+y%2) + r + s, whereas the
         #electrum lib is using 27 + (4 if comp) + recid (0..3)
@@ -145,7 +142,7 @@ except ImportError:
         #first byte, but our code ignores it in verification (it's just 27+y%2
         #in the original pybitcointools implementation, which was maintained
         #in the secp256k1 patch in joinmarket for backwards compatibility.
-        return base64.b64encode(binascii.hexlify(ecdsa_sig))
+        return base64.b64encode(ecdsa_sig)
     
     def serialize(txobj):
         #It is a rather chunky matter to re-use electrum.transaction code
