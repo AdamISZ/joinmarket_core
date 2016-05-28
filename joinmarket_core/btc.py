@@ -51,7 +51,8 @@ except ImportError:
         return ord(data[0])
     
     def b58check_to_bin(addr):
-        return ebt.DecodeBase58Check(addr)
+        #drop the leading version byte returned by electrum's decode58
+        return ebt.DecodeBase58Check(addr)[1:]
     
     def address_to_script(addr):
         return etr.Transaction.pay_script(ebt.TYPE_ADDRESS, addr)
