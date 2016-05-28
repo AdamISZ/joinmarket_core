@@ -54,12 +54,12 @@ except ImportError:
         return ebt.DecodeBase58Check(addr)
     
     def address_to_script(addr):
-        return etr.Transaction.pay_script('address', addr)
+        return etr.Transaction.pay_script(ebt.TYPE_ADDRESS, addr)
     
     def script_to_address(script):
         bin_script = binascii.unhexlify(script)
         res = etr.get_address_from_output_script(bin_script)
-        if not res[0] == 'address':
+        if not res[0] == ebt.TYPE_ADDRESS:
             raise ValueError("Invalid script for bitcoin address")
         return res[1]
     
@@ -76,11 +76,11 @@ except ImportError:
         #to prepare for verification (to do the txhash for modtx)
         #we need to have the "address" field set in the input.
         typ, addr = etr.get_address_from_output_script(script)
-        if not typ == "address":
+        if not typ == ebt.TYPE_ADDRESS:
             #Don't support non-p2sh, non-p2pkh for now
             log.debug("Invalid script")
             return False
-        t.inputs[i]["address"] = addr
+        t.inputs()[i]["address"] = addr
         txforsig = etr.Hash(t.tx_for_sig(i).decode('hex'))
         ecdsa_pub = get_ecdsa_verifying_key(pub)
         if not ecdsa_pub:
@@ -320,7 +320,7 @@ def test_btc():
         assert ourraw == raw_valid_tx
         #double check round trip too
         assert deserialize(ourraw) == ourdeser
-        txinslist = t.inputs
+        txinslist = t.inputs()
     elif interface == "joinmarket-joinmarket":
         assert serialize(deserialize(raw_valid_tx)) == raw_valid_tx
         t = deserialize(raw_valid_tx)
