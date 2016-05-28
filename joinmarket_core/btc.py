@@ -228,7 +228,7 @@ except ImportError:
     
     def from_wif_privkey(privkey, vbyte=0):
         #converts a WIF compressed privkey to a hex private key
-        return ebt.ASecretToSecret(privkey, addrtype=vbyte)
+        return binascii.hexlify(ebt.ASecretToSecret(privkey, addrtype=vbyte))
     
     def txhash(txhex):
         t = ebt.Transaction(txhex)
