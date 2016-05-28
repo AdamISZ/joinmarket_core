@@ -30,3 +30,10 @@ pip install secp256k1 #will probably only apply to full Joinmarket; other wallet
 then code can be written that uses the joinmarket_core package. Work on this for
 Electrum is in progress.
 
+=====
+
+Running the test `python test_btc_interface.py` currently requires either the Joinmarket
+`bitcoin` directory or the Electrum core library (`electrum/lib`) to be accessible on the path.
+
+The structure of that interface (the contents of `joinmarket_core/btc.py` needs to be figured out).
+
