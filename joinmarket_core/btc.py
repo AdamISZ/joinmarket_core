@@ -30,7 +30,7 @@ except ImportError:
     from ecdsa.curves import SECP256k1
     from ecdsa.numbertheory import square_root_mod_prime
     from ecdsa.ellipticcurve import Point
-    
+
     #libsecp256k1 binding not used
     secp_present = False
 
@@ -123,9 +123,16 @@ except ImportError:
         #the signature returned by the joinmarket code
         #has encoding (27+y%2) + r + s, whereas the
         #electrum lib is using 27 + (4 if comp) + recid (0..3)
-        #to get this sig to verify we need only add 4 to the 27, i.e. \x1f
-        sig = chr(31) + sig[1:]
-        return ebt.verify_message(addr, sig, msg)
+        #to get this sig to verify we need to add 4 to the 27,
+        #i.e. \x1f, but also check every potential recovery id
+        #(a reminder from the SEC docs that both parity byte
+        #and sig +/- malleability together result in 4 possibilities.)
+        for i in range(4):
+            leading_byte = 31+i
+            sig = chr(leading_byte) + sig[1:]
+            if ebt.verify_message(addr, sig, msg):
+                return True
+        return False
         
     def ecdsa_sign(msg, priv, usehex=True):
         addr = privkey_to_address(priv)
@@ -165,7 +172,13 @@ except ImportError:
             o.append(ebt.var_int(len(out["script"])/2) + out["script"])
         o.append(ebt.int_to_hex(txobj["locktime"], 4))
         return ''.join(o)
-        
+
+    def deserialize_script(scriptSig):
+        #Assumes P2PKH scriptSig
+        d = {}
+        etr.parse_scriptSig(d, binascii.unhexlify(scriptSig))
+        return (d["signatures"][0], d["pubkeys"][0])
+
     def deserialize(txhex):
         t = etr.deserialize(txhex)
         #translation from Electrum deserialization
@@ -290,6 +303,7 @@ def test_btc():
     priv = dbl_sha256("hello") + "01"
     x = ecdsa_sign("helloxxx", priv)
     log.debug("Got: " + x)
+
     y = ecdsa_verify("helloxxx", x, privkey_to_pubkey(priv))
     log.debug("Sig ver: " + str(y))
     assert y
@@ -331,8 +345,17 @@ def test_btc():
     for i, tin in enumerate(txinslist):
         if interface == "joinmarket-electrum":
             script = address_to_script(tin["address"])
-            sig = tin["signatures"][0]
-            pub = tin["pubkeys"][0]
+            scriptSig = tin["scriptSig"]
+            #Check that script deserialization is correct
+            log.debug("Got scriptsig: " + scriptSig)
+            sig, pub = deserialize_script(scriptSig)
+            log.debug("Got pub: " + pub)
+            log.debug("Got sig: " + sig)
+            sig2 = tin["signatures"][0]
+            pub2 = tin["pubkeys"][0]
+            assert sig == sig2
+            assert pub == pub2
+
         elif interface == "joinmarket-joinmarket":
             log.debug("Joinmarket working with this script: " + tin["script"])
             scriptSig = tin["script"]
