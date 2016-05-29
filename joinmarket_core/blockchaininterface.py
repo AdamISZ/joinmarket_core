@@ -145,16 +145,24 @@ class ElectrumWalletInterface(BlockchainInterface):
     def add_tx_notify(self, txd, unconfirmfun, confirmfun, notifyaddr):
         log.debug("Dummy electrum interface, no add tx notify")
 
-    def pushtx(self, txhex):
+    def pushtx(self, txhex, timeout=10):
 	#synchronous send
 	log.debug("About to push over electrum")
 	from electrum.transaction import Transaction
 	etx = Transaction(txhex)
 	etx.deserialize()
-	retval = self.wallet.sendtx(etx)
-	#returns (True, txhex) or (False, None)
-	log.debug("Pushed via electrum result: " + str(retval[1]))
-	return retval[0]
+	tx_hash = etx.hash()
+	try:
+	    retval = self.wallet.network.synchronous_get(
+	        ('blockchain.transaction.broadcast', [str(etx)]), timeout)
+	except:
+	    log.debug("Failed electrum push")
+	    return False
+	if retval != tx_hash:
+	    log.debug("Pushtx over Electrum returned wrong value: " + str(retval))
+	    return False
+	log.debug("Pushed via Electrum successfully, hash: " + tx_hash)
+	return True
 
     def query_utxo_set(self, txout):
 	"""Needed even for a simple dummy interface.

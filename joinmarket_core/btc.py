@@ -241,7 +241,7 @@ except ImportError:
         return binascii.hexlify(ebt.ASecretToSecret(privkey, addrtype=vbyte))
     
     def txhash(txhex):
-        t = ebt.Transaction(txhex)
+        t = etr.Transaction(txhex)
         return t.hash()
     
     #A simple copy-paste for now; move into support.py perhaps? TODO
