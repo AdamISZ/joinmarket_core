@@ -124,26 +124,31 @@ class ElectrumWrapWallet(AbstractWallet):
         super(ElectrumWrapWallet, self).__init__()
 
     def get_key_from_addr(self, addr):
+        """If self.password is correctly set,
+        return the private key in hex from the wrapped
+        Electrum wallet.
+        """
         if self.ewallet.use_encryption and self.password is None:
             raise Exception("Cannot extract private key without password")
-        log.debug("in get key from addr")
-        log.debug("password is: " + str(self.password))
-        log.debug("address is: " + str(addr))
         key = self.ewallet.get_private_key(addr, self.password)
-        #TODO remove after testing!
-        log.debug("Got WIF key: " + str(key))
         #Convert from wif compressed to hex compressed
         #TODO check if compressed
         hex_key = btc.from_wif_privkey(key[0], vbyte=get_p2pk_vbyte())
-        log.debug("Got hex key: " + str(hex_key))
         return hex_key
 
     def get_external_addr(self, mixdepth):
+        """Retrieves an unused address from branch 0 (external)
+        """
         addr = self.ewallet.get_unused_address(self.account)
-        log.debug("Retrieved unused: " + addr)
         return addr
     
     def get_internal_addr(self, mixdepth):
+        """Follows the same logic as an Electrum wallet
+        to retrieve a change address, i.e. an address from
+        branch 1. Will try to retrieve unused but may retrieve
+        a randomly chosen used address depending on the gap
+        limit. TODO probably want to change this.
+        """
         try:
             addrs = self.ewallet.accounts["0"].get_addresses(
                 1)[-self.ewallet.gap_limit_for_change:]
@@ -170,6 +175,11 @@ class ElectrumWrapWallet(AbstractWallet):
         return change_addrs[0]
 
     def sign_tx(self, tx):
+        """tx should be a serialized hex tx.
+        If self.password is correctly set,
+        will return the raw transaction with all
+        inputs from this wallet signed.
+        """
         if not self.password:
             raise Exception("No password, cannot sign")
         from electrum.transaction import Transaction
@@ -187,20 +197,13 @@ class ElectrumWrapWallet(AbstractWallet):
         Format of return is therefore: {0: 
         {txid:n : {"address": addr, "value": value}, 
         txid:n: {"address": addr, "value": value},..}}
+        TODO this should use the account feature in Electrum,
+        which is exactly that from BIP32, to implement
+        multiple mixdepths.
         """
         ubym = {0:{}}
         coins = self.ewallet.get_spendable_coins()
         log.debug(pprint.pformat(coins))
-        """
-        output = {
-                    'address':addr,
-                    'value':value,
-                    'prevout_n':int(prevout_n),
-                    'prevout_hash':prevout_hash,
-                    'height':tx_height,
-                    'coinbase':is_cb
-                }
-        """
         for c in coins:
             utxo = c["prevout_hash"] + ":" + str(c["prevout_n"])
             ubym[0][utxo] = {"address": c["address"], "value": c["value"]}
