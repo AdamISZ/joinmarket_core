@@ -130,7 +130,6 @@ class ElectrumWalletInterface(BlockchainInterface):
         super(ElectrumWalletInterface, self).__init__()
         if testnet:
             raise NotImplementedError("Electrum doesnt yet have a testnet interface")
-        #self.server_domain = electrum_server.split(':')[0]
         self.last_sync_unspent = 0
 
     def set_wallet(self, wallet):
@@ -169,27 +168,22 @@ class ElectrumWalletInterface(BlockchainInterface):
 	"""
         if not isinstance(txout, list):
             txout = [txout]
-	log.debug("Starting query utxo set with: " + str(txout))
         utxos = [[t[:64],int(t[65:])] for t in txout]
         result = []
         for ut in utxos:
-	    log.debug("About to try to get an address for ut: " + str(ut))
 	    address = self.wallet.network.synchronous_get(
 	        ('blockchain.utxo.get_address', ut))
-	    log.debug("Got address: " + str(address))
 	    try:
 		utxo_info = self.wallet.network.synchronous_get(
 	        ("blockchain.address.listunspent", [address]))
 	    except Exception as e:
 		log.debug("Got exception calling listunspent: " + repr(e))
 		raise
-	    log.debug("Got utxo info: " + str(utxo_info))
 	    utxo = None
             for u in utxo_info:
                 if u['tx_hash'] == ut[0] and u['tx_pos'] == ut[1]:
                     utxo = u
 	    if utxo is None:
-		log.debug("Utxo was none")
 		raise Exception("UTXO Not Found")
 	    r = {
 	        'value': u['value'],
@@ -197,14 +191,11 @@ class ElectrumWalletInterface(BlockchainInterface):
 	        'script': btc.address_to_script(address)
 	    }
 	    result.append(r)
-	log.debug("Got results, returning: " + str(result))
         return result
 
     def estimate_fee_per_kb(self, N):
-	log.debug("Trying to get fee")
         fee = self.wallet.network.synchronous_get(('blockchain.estimatefee', [N]))
 	log.debug("Got fee: " + str(fee))
-        #fee = fee_info.get('result')
         fee_per_kb_sat = int(float(fee) * 100000000)
         return fee_per_kb_sat
 

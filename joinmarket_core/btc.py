@@ -10,10 +10,8 @@ interface = "joinmarket-joinmarket"
 
 try:
     from bitcoin import *
-    bjm = True
 except ImportError:
-    #TODO figure out the right flexibility structure
-    
+    #TODO figure out the right flexibility structure; read from config? class?
     interface = "joinmarket-electrum"
     
     if interface != "joinmarket-electrum":
@@ -35,6 +33,7 @@ except ImportError:
     secp_present = False
 
     #Not needed parts of API; should not be called ever.
+    #Probably not needed here, not sure.
     def make_request(request_string):
         raise NotImplementedError("Make request " + not_supported_string)
     
@@ -45,6 +44,8 @@ except ImportError:
         #transaction signing is handled by the wallet for Electrum
         raise NotImplementedError("sign " + not_supported_string)
     
+    #END of not-needed parts of interface
+
     def get_version_byte(inp):
         leadingzbytes = len(re.match('^1*', inp).group(0))
         data = b'\x00' * leadingzbytes + ebt.DecodeBase58Check(inp)
@@ -297,15 +298,17 @@ except ImportError:
         return serialize(txobj)
     
 def test_btc():
+    #These tests are not yet properly formed or complete.
+    #At least the interfaces should be capable of passing
+    #the same tests (see references to "interface" here).
     load_program_config()
-    
     #Sign and verify test (for message signing in joinmarket handshake)
     priv = dbl_sha256("hello") + "01"
     x = ecdsa_sign("helloxxx", priv)
     log.debug("Got: " + x)
 
     y = ecdsa_verify("helloxxx", x, privkey_to_pubkey(priv))
-    log.debug("Sig ver: " + str(y))
+    log.debug("Sig verified? : " + str(y))
     assert y
     
     #address/script conversion test
