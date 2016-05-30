@@ -235,7 +235,8 @@ def load_program_config():
             global_singleton.config)
 
     #print warning if not using libsecp256k1
-    if not btc.secp_present:
+    if not btc.secp_present and global_singleton.config.get(
+        "BLOCKCHAIN", "blockchain_source") != "electrum":
         log.debug("WARNING: You are not using the binding to libsecp256k1. The "
                   "crypto code in use has poorer performance and security "
                   "properties. Consider installing the binding with `pip install "
