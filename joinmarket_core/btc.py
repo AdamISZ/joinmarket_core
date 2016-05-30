@@ -51,7 +51,10 @@ except ImportError:
         if not inp:
             return None
         leadingzbytes = len(re.match('^1*', inp).group(0))
-        decoded = ebt.DecodeBase58Check(inp)
+        try:
+            decoded = ebt.DecodeBase58Check(inp)
+        except:
+            return None
         #Checksum failure will return None
         if not decoded:
             return None
