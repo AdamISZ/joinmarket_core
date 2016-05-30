@@ -47,7 +47,14 @@ except ImportError:
     #END of not-needed parts of interface
 
     def get_version_byte(inp):
+        #Null input not allowed
+        if not inp:
+            return None
         leadingzbytes = len(re.match('^1*', inp).group(0))
+        decoded = ebt.DecodeBase58Check(inp)
+        #Checksum failure will return None
+        if not decoded:
+            return None
         data = b'\x00' * leadingzbytes + ebt.DecodeBase58Check(inp)
         return ord(data[0])
     
