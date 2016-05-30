@@ -202,8 +202,10 @@ def validate_address(addr):
     return True, 'address validated'
 
 
-def load_program_config():
+def load_program_config(config_path=None):
     global_singleton.config.readfp(io.BytesIO(defaultconfig))
+    if config_path:
+        global_singleton.config_location = config_path
     loadedFiles = global_singleton.config.read(
             [global_singleton.config_location])
     # Create default config file if not found
