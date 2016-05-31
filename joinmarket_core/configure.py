@@ -3,7 +3,7 @@ from __future__ import  print_function
 import io
 import logging
 import threading
-
+import os
 from ConfigParser import SafeConfigParser, NoOptionError
 
 from .jsonrpc import JsonRpc
@@ -38,8 +38,10 @@ class AttributeDict(object):
             logFormatter = logging.Formatter(
                     ('%(asctime)s [%(threadName)-12.12s] '
                      '[%(levelname)-5.5s]  %(message)s'))
+            logsdir = os.path.join(os.path.dirname(
+                global_singleton.config_location), "logs")
             fileHandler = logging.FileHandler(
-                    'logs/{}.log'.format(value))
+                    logsdir + '/{}.log'.format(value))
             fileHandler.setFormatter(logFormatter)
             log.addHandler(fileHandler)
 
@@ -83,6 +85,7 @@ global_singleton.core_alert = core_alert
 global_singleton.joinmarket_alert = joinmarket_alert
 global_singleton.debug_silence = debug_silence
 global_singleton.config = SafeConfigParser()
+#This is reset to a full path after load_program_config call
 global_singleton.config_location = 'joinmarket.cfg'
 
 
@@ -96,7 +99,7 @@ required_options = {'BLOCKCHAIN': ['blockchain_source', 'network'],
 defaultconfig = \
     """
 [BLOCKCHAIN]
-blockchain_source = electrum
+blockchain_source = blockr
 #options: blockr, bitcoin-rpc, regtest
 # for instructions on bitcoin-rpc read
 # https://github.com/chris-belcher/joinmarket/wiki/Running-JoinMarket-with-Bitcoin-Core-full-node
@@ -202,12 +205,18 @@ def validate_address(addr):
     return True, 'address validated'
 
 
-def load_program_config(config_path=None):
+def load_program_config(config_path=None, bs=None):
     global_singleton.config.readfp(io.BytesIO(defaultconfig))
-    if config_path:
-        global_singleton.config_location = config_path
+    if not config_path:
+        config_path = os.getcwd()
+    global_singleton.config_location = os.path.join(config_path,
+                                        global_singleton.config_location)
     loadedFiles = global_singleton.config.read(
             [global_singleton.config_location])
+    #Hack required for electrum; must be able to enforce a different
+    #blockchain interface even in default/new load.
+    if bs:
+        global_singleton.config.set("BLOCKCHAIN", "blockchain_source", bs)
     # Create default config file if not found
     if len(loadedFiles) != 1:
         with open(global_singleton.config_location, "w") as configfile:
